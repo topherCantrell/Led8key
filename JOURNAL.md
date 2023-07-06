@@ -2,6 +2,15 @@
 
 I made the constructor function and fixed the package path. 
 
+Now to fetch it:
+
+```
+go get github.com/topherCantrell/go-led8key/pkg
+```
+
+I'm confused by this. What about a "/internal" directory beside the pkg directory. How do I
+install the commands from /cmd. What's all this packaging about? More learning for sure.
+
 # 7/5/2023
 
 Installed GO on the raspberry pi.
