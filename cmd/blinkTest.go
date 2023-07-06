@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stianeikeland/go-rpio"
+	"github.com/topherCantrell/go-led8key/pkg"
 )
 
 // Driver struct with pin defs passed into new
@@ -16,6 +17,10 @@ import (
 //   - draw number 10_000_000
 
 func main() {
+	fmt.Println("Creating object")
+	p := pkg.NewLED8Key(1, 2, 3)
+	p.SayHi()
+
 	fmt.Println("opening gpio")
 	err := rpio.Open()
 	if err != nil {
