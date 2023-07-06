@@ -2,25 +2,14 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/stianeikeland/go-rpio"
 	"github.com/topherCantrell/go-led8key/pkg"
 )
 
-// Driver struct with pin defs passed into new
-// private bit-bangers
-// public access methods
-//   - set LEDs
-//   - read buttons
-//   - set display list of list of booleans -- 8 booleans per digit, 8 digits
-//   - draw number 10_000_000
-
 func main() {
-	fmt.Println("Creating object")
-	p := pkg.NewLED8Key(1, 2, 3)
-	p.SayHi()
 
+	// Open the rpio once for all using packages (right now just go-led8key)
 	fmt.Println("opening gpio")
 	err := rpio.Open()
 	if err != nil {
@@ -29,11 +18,7 @@ func main() {
 
 	defer rpio.Close()
 
-	pin := rpio.Pin(18)
-	pin.Output()
+	p := pkg.NewLED8Key(1, 2, 3)
+	p.SetLEDs(0b10101010)
 
-	for x := 0; x < 20; x++ {
-		pin.Toggle()
-		time.Sleep(time.Second)
-	}
 }
