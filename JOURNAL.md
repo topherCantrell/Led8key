@@ -11,6 +11,11 @@ go get github.com/topherCantrell/go-led8key/pkg
 I'm confused by this. What about a "/internal" directory beside the pkg directory. How do I
 install the commands from /cmd. What's all this packaging about? More learning for sure.
 
+Now for some general learning about the chip and its protocol.
+
+I need to separate this into chip driver and a board-specific. The board-specific
+references the layouts of things -- LEDs+digits+buttons. The driver is layout agnostic.
+
 # 7/5/2023
 
 Installed GO on the raspberry pi.
