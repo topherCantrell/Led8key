@@ -5,6 +5,11 @@ import (
 )
 
 /*
+    This is the memory layout for the buttons and LEDs on the
+	LED8Key board.
+
+	All of the 16 bytes in the TM1638 chip map to writeable LEDs.
+
     Memory bytes on chip:
 	0    Digit 1 (left most digit)
 	1    LED 1 (left most LED) (xxxxxxxL)
@@ -32,6 +37,15 @@ import (
 		---
 		 d
 		    * x
+
+	All four of the read-scanning-keys bytes are used to capture the 8 buttons
+	on the board:
+
+	Buttons from left to right, A to H map to bits in the four return bytes:
+	0    A000E000
+	1    B000F000
+	2    C000G000
+	3    D000H000
 */
 
 type LED8KEY struct {
@@ -41,6 +55,10 @@ type LED8KEY struct {
 
 func (x *LED8KEY) Initialize(pinSTROBE int, pinCLK int, pinDIO int) {
 	x.TM1638.Initialize(pinSTROBE, pinCLK, pinDIO)
+
+	// Limited font mapping from string characters to bit patterns. The user
+	// can extend/change this mapping as needed.
+
 	x.font = map[int]byte{
 		' ': 0b0_0000000,
 		'0': 0b0_0111111,
@@ -54,7 +72,7 @@ func (x *LED8KEY) Initialize(pinSTROBE int, pinCLK int, pinDIO int) {
 		'8': 0b0_1111111,
 		'9': 0b0_1101111,
 		'.': 0b1_0000000, // The PrintString will attempt to combine
-		'-': 0b0_1000000,
+		'-': 0b0_1000000, // Minus sign
 		// Useful for hex
 		'A': 0b0_1110111,
 		'B': 0b0_1111100,
@@ -62,7 +80,7 @@ func (x *LED8KEY) Initialize(pinSTROBE int, pinCLK int, pinDIO int) {
 		'D': 0b0_1011110,
 		'E': 0b0_1111001,
 		'F': 0b0_1110001,
-		// Some random letters
+		// Some random letters for example
 		'H': 0b0_1110110,
 		'i': 0b0_0000100,
 		'L': 0b0_0111000,
@@ -79,6 +97,7 @@ func NewLED8KEY(pinSTROBE int, pinCLK int, pinDIO int) *LED8KEY {
 	return ret
 }
 
+// Fill the 16 bytes of memory with a given value.
 func (x *LED8KEY) FillDisplay(fillValue byte) error {
 	// todo there must be better syntax
 	data := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -92,6 +111,8 @@ func (x *LED8KEY) FillDisplay(fillValue byte) error {
 	return nil
 }
 
+// Set the status of the LEDs.
+// leds = slice of booleans left to right, true means on
 func (x *LED8KEY) SetLEDs(leds []bool) error {
 	if len(leds) != 8 {
 		return fmt.Errorf("leds slice must be 8 booleans")
@@ -108,17 +129,20 @@ func (x *LED8KEY) SetLEDs(leds []bool) error {
 	return nil
 }
 
-func (x *LED8KEY) WriteDigits(start int, segments []byte) error {
-	if len(segments) > 8 {
+// Write 1 to 16 display digits.
+// start = the first digit to begin drawing.
+// digits = slice of raw bit patterns for each display.
+func (x *LED8KEY) WriteDigits(start int, digits []byte) error {
+	if len(digits) > 8 {
 		return fmt.Errorf("No more than 8 digits")
 	}
-	if start < 0 || start > (8-len(segments)) {
-		return fmt.Errorf("Invalid start position")
+	if start < 0 || start > (8-len(digits)) {
+		return fmt.Errorf("Invalid start position %d with length of %d", start, len(digits))
 	}
 	// TODO there must be a better way than this
 	data := []byte{0}
-	for i := 0; i < len(segments); i++ {
-		data[0] = segments[i]
+	for i := 0; i < len(digits); i++ {
+		data[0] = digits[i]
 		// Is this common? all this casting the sign away? Maybe just use an int?
 		// But it is nice to have the compiler reject negatives
 		x.WriteData(uint(start*2+i*2), data)
@@ -126,30 +150,57 @@ func (x *LED8KEY) WriteDigits(start int, segments []byte) error {
 	return nil
 }
 
+// Print the string to the display.
+// This method maps characters to segment bit patterns. The user can extend/change
+// this font mapping.
+// start = the first digit to begin printing.
+// chars = the text string.
 func (x *LED8KEY) WriteString(start int, chars string) error {
-	// TODO handle the decimal point by combining it to the left
-	// if there is a digit to append. Otherwise use space.
-	data := make([]byte, len(chars))
+
+	data := make([]byte, 0, 16) // 16 is the most there could be
+	previous := -1              // No previous-position yet
+
 	for i := 0; i < len(chars); i++ {
+		if chars[i] == '.' {
+			// If this is a period, we'll try to merge it with the previous digit
+			if previous >= 0 {
+				data[previous] |= 0b1_0000000
+				previous = -1
+				continue // No new digit ... continue with next character
+			}
+		}
+		// Lookup the segment bit pattern
 		value, exist := x.font[int(chars[i])]
 		if !exist {
 			return fmt.Errorf("No font mapping for '%c' in '%s'.", chars[i], chars)
 		}
-		data[i] = value
+		if i > 15 {
+			return fmt.Errorf("Maximum of 16 digits")
+		}
+		// Add the value
+		data = append(data, value)
+		previous = i
+		if chars[i] == '.' {
+			// Decimal points cannot be merged to dots
+			previous = -1
+		}
+
 	}
+
 	return x.WriteDigits(start, data)
 }
 
+// Get the current font mapping for PrintString. Mutate this map as needed.
 func (x *LED8KEY) GetMutableFont() map[int]byte {
 	return x.font
 }
 
+// Read the 8 buttons
+// Returns an array of booleans from left to right, true means pressed
 func (x *LED8KEY) ReadButtons() ([]bool, error) {
-	// Buttons from left to right, A to H map to bits in the return:
-	//   0    A000E000
-	//   1    B000F000
-	//   2    C000G000
-	//   3    D000H000
+
+	// TODO pass in the storage for this. No need to continually thrash memory.
+
 	data := []byte{0, 0, 0, 0}
 	err := x.ReadScanningData(data)
 	if err != nil {
@@ -169,7 +220,6 @@ func (x *LED8KEY) ReadButtons() ([]bool, error) {
 	if data[3]&0x80 > 0 {
 		buttons[3] = true
 	}
-
 	if data[0]&0x08 > 0 {
 		buttons[4] = true
 	}

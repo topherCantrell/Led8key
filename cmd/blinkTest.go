@@ -170,17 +170,15 @@ func testWriteDigits(p *pkg.LED8KEY) {
 
 func testWriteString(p *pkg.LED8KEY) {
 
-	// TODO we need to combine dots with their digit to the left
-
 	err := p.InitWriteData(true)
 	if err != nil {
 		fmt.Println("InitWriteData:", err)
 	}
 	time.Sleep(time.Second)
 
-	data := "-Hi  Lo-"
+	data := "ABCDE.F"
 
-	err = p.WriteString(0, data)
+	err = p.WriteString(2, data)
 	if err != nil {
 		fmt.Println("WriteString:", err)
 	}
