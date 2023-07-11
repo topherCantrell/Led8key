@@ -1,3 +1,24 @@
+# 7/10/2023
+
+I added the PrintString with some font characters for numbers and such. The user can
+add/change characters in the font. Next I need to tweak the PrintString to combine
+decimal points to the character to the left where possible. For instance, "3.14" should
+only consume three digits with the decimal point going with the "3". Other things to
+handle:
+  - ".1234" There is no digit to the left of the "." -- insert a space
+  - "2..34" There is no digit to the left of the repeated "." -- insert a space
+
+The combining changes the character count check.
+
+# 7/7/2023
+
+Lots of good progress. Got the reading routine working. I can read the buttons.
+
+I got the display control working. I can flash the intensity on the random garbage
+at power up.
+
+I mapped out the LED connections. Time for the "board specific" code
+
 # 7/6/2023
 
 I made the constructor function and fixed the package path. 

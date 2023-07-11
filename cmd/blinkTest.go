@@ -2,10 +2,189 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/stianeikeland/go-rpio"
 	"github.com/topherCantrell/go-led8key/pkg"
 )
+
+func testFlash(p *pkg.LED8KEY) {
+
+	for i := 0; i < 10; i++ {
+		err := p.ConfigureDisplay(true, 7)
+		if err != nil {
+			fmt.Println("ConfigureDisplay:", err)
+		}
+		time.Sleep(time.Second)
+		err = p.ConfigureDisplay(true, 1)
+		if err != nil {
+			fmt.Println("ConfigureDisplay:", err)
+		}
+		time.Sleep(time.Second)
+	}
+
+}
+
+func testButtons(p *pkg.LED8KEY) {
+
+	err := p.InitWriteData(true)
+	if err != nil {
+		fmt.Println("InitWriteData:", err)
+	}
+	time.Sleep(time.Second)
+
+	for {
+		buttons, err := p.ReadButtons()
+		if err != nil {
+			fmt.Println("ReadButtons:", err)
+		}
+		fmt.Println(">>>", buttons)
+		time.Sleep(time.Second)
+	}
+
+}
+
+func testFill(p *pkg.LED8KEY) {
+
+	err := p.InitWriteData(true)
+	if err != nil {
+		fmt.Println("InitWriteData:", err)
+	}
+	time.Sleep(time.Second)
+
+	for {
+		err := p.FillDisplay(0x00)
+		if err != nil {
+			fmt.Println("ConfigureDisplay:", err)
+		}
+
+		time.Sleep(time.Second)
+
+		err = p.FillDisplay(0xFF)
+		if err != nil {
+			fmt.Println("ConfigureDisplay:", err)
+		}
+
+		time.Sleep(time.Second)
+	}
+}
+
+func testBoobs(p *pkg.LED8KEY) {
+
+	bufferA := []byte{
+		0b01111100, // Digit 1 (left most digit)
+		0x00,       // LED 1 (left most LED) (xxxxxxxL)
+		0b00111111, // Digit 2
+		0x00,       // LED 2
+		0b00111111, // Digit 3
+		0x00,       // LED 3
+		0b01111100, // Digit 4
+		0x00,       // LED 4
+		0b01101101, // Digit 5
+		0x00,       // LED 5
+		0b10000010, // Digit 6
+		0x00,       // LED 6
+		0b10000010, // Digit 7
+		0x00,       // LED 7
+		0b10000010, // Digit 8 (right most digit)
+		0x00,       // LED 8 (right most LED)
+	}
+
+	err := p.InitWriteData(true)
+	if err != nil {
+		fmt.Println("InitWriteData:", err)
+	}
+	time.Sleep(time.Second)
+
+	for {
+		err = p.WriteData(0, bufferA)
+		if err != nil {
+			fmt.Println("WriteData:", err)
+		}
+		time.Sleep(time.Second)
+
+		bufferB := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+		err = p.WriteData(0, bufferB)
+		if err != nil {
+			fmt.Println("WriteData:", err)
+		}
+		time.Sleep(time.Second)
+
+		bufferC := []byte{0xAA, 1, 0x55, 0, 0xAA, 1, 0x55, 0, 0xAA, 1, 0x55, 0, 0xAA, 1, 0x55, 0}
+		err = p.WriteData(0, bufferC)
+		if err != nil {
+			fmt.Println("WriteData:", err)
+		}
+		time.Sleep(time.Second)
+	}
+
+}
+
+func testLEDs(p *pkg.LED8KEY) {
+	err := p.InitWriteData(true)
+	if err != nil {
+		fmt.Println("InitWriteData:", err)
+	}
+	time.Sleep(time.Second)
+
+	for {
+		p.SetLEDs([]bool{true, false, true, false, true, false, true, false})
+		time.Sleep(time.Second)
+		p.SetLEDs([]bool{false, true, false, true, false, true, false, true})
+		time.Sleep(time.Second)
+	}
+
+}
+
+func testLEDandButtons(p *pkg.LED8KEY) {
+
+	for {
+
+		leds, err := p.ReadButtons()
+		if err != nil {
+			fmt.Println("ReadButtons:", err)
+		}
+
+		err = p.SetLEDs(leds)
+		if err != nil {
+			fmt.Println("SetLEDs:", err)
+		}
+
+		time.Sleep(time.Millisecond * 10)
+
+	}
+
+}
+
+func testWriteDigits(p *pkg.LED8KEY) {
+
+	err := p.InitWriteData(true)
+	if err != nil {
+		fmt.Println("InitWriteData:", err)
+	}
+	time.Sleep(time.Second)
+
+	data := []byte{0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55}
+	p.WriteDigits(0, data)
+}
+
+func testWriteString(p *pkg.LED8KEY) {
+
+	// TODO we need to combine dots with their digit to the left
+
+	err := p.InitWriteData(true)
+	if err != nil {
+		fmt.Println("InitWriteData:", err)
+	}
+	time.Sleep(time.Second)
+
+	data := "-Hi  Lo-"
+
+	err = p.WriteString(0, data)
+	if err != nil {
+		fmt.Println("WriteString:", err)
+	}
+}
 
 func main() {
 
@@ -18,7 +197,22 @@ func main() {
 
 	defer rpio.Close()
 
-	p := pkg.NewLED8Key(1, 2, 3)
-	p.SetLEDs(0b10101010)
+	p := pkg.NewLED8KEY(17, 27, 22)
+
+	err = p.ConfigureDisplay(true, 7)
+	if err != nil {
+		fmt.Println("ConfigureDisplay:", err)
+	}
+
+	time.Sleep(time.Second)
+
+	//testLEDs(p)
+	//testFill(p)
+	//testFlash(p)
+	//testBoobs(p)
+	//testButtons(p)
+	//testLEDandButtons(p)
+	//testWriteDigits(p)
+	testWriteString(p)
 
 }
