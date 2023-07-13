@@ -24,5 +24,5 @@ cd ~/go-led8key
 go mod init example.com
 go mod tidy
 
-go run led8key.go
+go run cmd/blinkTest.go
 ```
