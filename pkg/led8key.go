@@ -99,12 +99,10 @@ func NewLED8KEY(pinSTROBE int, pinCLK int, pinDIO int) *LED8KEY {
 
 // Fill the 16 bytes of memory with a given value.
 func (x *LED8KEY) FillDisplay(fillValue byte) error {
-	// todo there must be better syntax
-	data := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	for i := 0; i < 16; i++ {
-		data[i] = fillValue
+		x.tempBuffer[i] = fillValue
 	}
-	err := x.WriteData(0, data)
+	err := x.WriteData(0, x.tempBuffer)
 	if err != nil {
 		return err
 	}
@@ -123,7 +121,7 @@ func (x *LED8KEY) SetLEDs(leds []bool) error {
 		if leds[i] {
 			data = byte(1)
 		}
-		x.WriteData(uint(i*2+1), []byte{data})
+		x.WriteData(i*2+1, []byte{data})
 	}
 
 	return nil
@@ -139,13 +137,9 @@ func (x *LED8KEY) WriteDigits(start int, digits []byte) error {
 	if start < 0 || start > (8-len(digits)) {
 		return fmt.Errorf("Invalid start position %d with length of %d", start, len(digits))
 	}
-	// TODO there must be a better way than this
-	data := []byte{0}
 	for i := 0; i < len(digits); i++ {
-		data[0] = digits[i]
-		// Is this common? all this casting the sign away? Maybe just use an int?
-		// But it is nice to have the compiler reject negatives
-		x.WriteData(uint(start*2+i*2), data)
+		x.tempBuffer[0] = digits[i]
+		x.WriteData(start*2+i*2, x.tempBuffer[0:1])
 	}
 	return nil
 }
@@ -157,14 +151,14 @@ func (x *LED8KEY) WriteDigits(start int, digits []byte) error {
 // chars = the text string.
 func (x *LED8KEY) WriteString(start int, chars string) error {
 
-	data := make([]byte, 0, 16) // 16 is the most there could be
-	previous := -1              // No previous-position yet
+	previous := -1 // No previous-position yet
+	pos := 0       // Next digit to fill
 
 	for i := 0; i < len(chars); i++ {
 		if chars[i] == '.' {
 			// If this is a period, we'll try to merge it with the previous digit
 			if previous >= 0 {
-				data[previous] |= 0b1_0000000
+				x.tempBuffer[previous] |= 0b1_0000000
 				previous = -1
 				continue // No new digit ... continue with next character
 			}
@@ -178,7 +172,8 @@ func (x *LED8KEY) WriteString(start int, chars string) error {
 			return fmt.Errorf("Maximum of 16 digits")
 		}
 		// Add the value
-		data = append(data, value)
+		x.tempBuffer[pos] = value
+		pos++
 		previous = i
 		if chars[i] == '.' {
 			// Decimal points cannot be merged to dots
@@ -187,7 +182,7 @@ func (x *LED8KEY) WriteString(start int, chars string) error {
 
 	}
 
-	return x.WriteDigits(start, data)
+	return x.WriteDigits(start, x.tempBuffer[0:pos])
 }
 
 // Get the current font mapping for PrintString. Mutate this map as needed.
@@ -197,41 +192,22 @@ func (x *LED8KEY) GetMutableFont() map[int]byte {
 
 // Read the 8 buttons
 // Returns an array of booleans from left to right, true means pressed
-func (x *LED8KEY) ReadButtons() ([]bool, error) {
-
-	// TODO pass in the storage for this. No need to continually thrash memory.
+func (x *LED8KEY) ReadButtons(buttons []bool) error {
 
 	data := []byte{0, 0, 0, 0}
 	err := x.ReadScanningData(data)
 	if err != nil {
-		return nil, err
-	}
-	buttons := []bool{false, false, false, false, false, false, false, false}
-
-	if data[0]&0x80 > 0 {
-		buttons[0] = true
-	}
-	if data[1]&0x80 > 0 {
-		buttons[1] = true
-	}
-	if data[2]&0x80 > 0 {
-		buttons[2] = true
-	}
-	if data[3]&0x80 > 0 {
-		buttons[3] = true
-	}
-	if data[0]&0x08 > 0 {
-		buttons[4] = true
-	}
-	if data[1]&0x08 > 0 {
-		buttons[5] = true
-	}
-	if data[2]&0x08 > 0 {
-		buttons[6] = true
-	}
-	if data[3]&0x08 > 0 {
-		buttons[7] = true
+		return err
 	}
 
-	return buttons, nil
+	buttons[0] = data[0]&0x80 > 0
+	buttons[1] = data[1]&0x80 > 0
+	buttons[2] = data[2]&0x80 > 0
+	buttons[3] = data[3]&0x80 > 0
+	buttons[4] = data[0]&0x08 > 0
+	buttons[5] = data[1]&0x08 > 0
+	buttons[6] = data[2]&0x08 > 0
+	buttons[7] = data[3]&0x08 > 0
+
+	return nil
 }

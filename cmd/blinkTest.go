@@ -33,8 +33,10 @@ func testButtons(p *pkg.LED8KEY) {
 	}
 	time.Sleep(time.Second)
 
+	buttons := make([]bool, 8)
+
 	for {
-		buttons, err := p.ReadButtons()
+		err := p.ReadButtons(buttons)
 		if err != nil {
 			fmt.Println("ReadButtons:", err)
 		}
@@ -69,18 +71,18 @@ func testFill(p *pkg.LED8KEY) {
 	}
 }
 
-func testBoobs(p *pkg.LED8KEY) {
+func testHello(p *pkg.LED8KEY) {
 
 	bufferA := []byte{
-		0b01111100, // Digit 1 (left most digit)
+		0b01110110, // Digit 1 (left most digit)
 		0x00,       // LED 1 (left most LED) (xxxxxxxL)
-		0b00111111, // Digit 2
+		0b01111001, // Digit 2
 		0x00,       // LED 2
-		0b00111111, // Digit 3
+		0b00111000, // Digit 3
 		0x00,       // LED 3
-		0b01111100, // Digit 4
+		0b00111000, // Digit 4
 		0x00,       // LED 4
-		0b01101101, // Digit 5
+		0b00111111, // Digit 5
 		0x00,       // LED 5
 		0b10000010, // Digit 6
 		0x00,       // LED 6
@@ -138,14 +140,16 @@ func testLEDs(p *pkg.LED8KEY) {
 
 func testLEDandButtons(p *pkg.LED8KEY) {
 
+	buttons := make([]bool, 8)
+
 	for {
 
-		leds, err := p.ReadButtons()
+		err := p.ReadButtons(buttons)
 		if err != nil {
 			fmt.Println("ReadButtons:", err)
 		}
 
-		err = p.SetLEDs(leds)
+		err = p.SetLEDs(buttons)
 		if err != nil {
 			fmt.Println("SetLEDs:", err)
 		}
@@ -176,9 +180,11 @@ func testWriteString(p *pkg.LED8KEY) {
 	}
 	time.Sleep(time.Second)
 
-	data := "ABCDE.F"
+	p.SetLEDs([]bool{true, true, false, false, true, false, true, false})
 
-	err = p.WriteString(2, data)
+	data := "3.1415926"
+
+	err = p.WriteString(0, data)
 	if err != nil {
 		fmt.Println("WriteString:", err)
 	}
@@ -207,7 +213,7 @@ func main() {
 	//testLEDs(p)
 	//testFill(p)
 	//testFlash(p)
-	//testBoobs(p)
+	//testHello(p)
 	//testButtons(p)
 	//testLEDandButtons(p)
 	//testWriteDigits(p)

@@ -71,9 +71,10 @@ import (
 */
 
 type TM1638 struct {
-	STROBE rpio.Pin
-	CLK    rpio.Pin
-	DIO    rpio.Pin
+	STROBE     rpio.Pin
+	CLK        rpio.Pin
+	DIO        rpio.Pin
+	tempBuffer []byte // various uses through the API
 }
 
 func (x *TM1638) Initialize(pinSTROBE int, pinCLK int, pinDIO int) {
@@ -92,6 +93,8 @@ func (x *TM1638) Initialize(pinSTROBE int, pinCLK int, pinDIO int) {
 	x.STROBE.Output() // Driven
 	x.CLK.Output()    // Driven
 	x.DIO.Input()     // We'll simulate open-drain
+
+	x.tempBuffer = make([]byte, 16)
 }
 
 // Create a new LED8Key driver with the given pin numbers. These numbers
@@ -158,12 +161,12 @@ func (x *TM1638) readByte() byte {
 //   - 5 = 12/16
 //   - 6 = 13/16
 //   - 7 = 14/16 (bright)
-func (x *TM1638) ConfigureDisplay(enabled bool, pulseWidth uint) error {
+func (x *TM1638) ConfigureDisplay(enabled bool, pulseWidth int) error {
 	// 1. Active strobe
 	// 2. Send command
 	// 3. Release strobe
 
-	if pulseWidth > 7 {
+	if pulseWidth < 0 || pulseWidth > 7 {
 		return fmt.Errorf("Invalid pulseWidth value: %d", pulseWidth)
 	}
 
@@ -173,7 +176,7 @@ func (x *TM1638) ConfigureDisplay(enabled bool, pulseWidth uint) error {
 	if enabled {
 		cmd |= 0b00_00_1_000
 	}
-	cmd |= uint8(pulseWidth)
+	cmd |= byte(pulseWidth)
 
 	x.STROBE.Write(0)
 	time.Sleep(time.Microsecond)
@@ -233,13 +236,13 @@ func (x *TM1638) InitWriteData(autoIncrement bool) error {
 // Send an address followed by stream of bytes.
 //   - address = the starting address (0x00 to 0x0F)
 //   - data = slice of bytes
-func (x *TM1638) WriteData(address uint, data []byte) error {
+func (x *TM1638) WriteData(address int, data []byte) error {
 	// 1. Active strobe
 	// 2. Send Address
 	// 3. Send each byte of data
 	// 4. Release strobe
 
-	if address > 0x0F {
+	if address < 0 || address > 0x0F {
 		return fmt.Errorf("Invalid address %d. Must be 0 to 15.", address)
 	}
 	if len(data) < 1 || len(data) > 16 {
@@ -247,7 +250,7 @@ func (x *TM1638) WriteData(address uint, data []byte) error {
 	}
 	x.STROBE.Write(0)
 	time.Sleep(time.Microsecond)
-	address |= uint(0b11_00_0000)
+	address |= 0b11_00_0000
 	x.sendByte(byte(address))
 	time.Sleep(time.Microsecond)
 	for _, v := range data {

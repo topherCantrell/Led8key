@@ -4,7 +4,11 @@ Specifically, for the raspberry pi
 
 # Wiring
 
-TODO
+![](art/led8key1.jpg)
+
+![](art/led8key2.jpg)
+
+![](art/led8key3.jpg)
 
 # Links
   - https://blog.3d-logic.com/2015/01/10/using-a-tm1638-based-board-with-arduino/
