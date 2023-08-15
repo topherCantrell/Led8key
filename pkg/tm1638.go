@@ -71,10 +71,9 @@ import (
 */
 
 type TM1638 struct {
-	STROBE     rpio.Pin
-	CLK        rpio.Pin
-	DIO        rpio.Pin
-	tempBuffer []byte // various uses through the API
+	STROBE rpio.Pin
+	CLK    rpio.Pin
+	DIO    rpio.Pin
 }
 
 func (x *TM1638) Initialize(pinSTROBE int, pinCLK int, pinDIO int) {
@@ -93,8 +92,6 @@ func (x *TM1638) Initialize(pinSTROBE int, pinCLK int, pinDIO int) {
 	x.STROBE.Output() // Driven
 	x.CLK.Output()    // Driven
 	x.DIO.Input()     // We'll simulate open-drain
-
-	x.tempBuffer = make([]byte, 16)
 }
 
 // Create a new LED8Key driver with the given pin numbers. These numbers

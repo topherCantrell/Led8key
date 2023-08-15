@@ -33,10 +33,10 @@ func testButtons(p *pkg.LED8KEY) {
 	}
 	time.Sleep(time.Second)
 
-	buttons := make([]bool, 8)
+	buttons := [8]bool{}
 
 	for {
-		err := p.ReadButtons(buttons)
+		err := p.ReadButtons(&buttons)
 		if err != nil {
 			fmt.Println("ReadButtons:", err)
 		}
@@ -44,31 +44,6 @@ func testButtons(p *pkg.LED8KEY) {
 		time.Sleep(time.Second)
 	}
 
-}
-
-func testFill(p *pkg.LED8KEY) {
-
-	err := p.InitWriteData(true)
-	if err != nil {
-		fmt.Println("InitWriteData:", err)
-	}
-	time.Sleep(time.Second)
-
-	for {
-		err := p.FillDisplay(0x00)
-		if err != nil {
-			fmt.Println("ConfigureDisplay:", err)
-		}
-
-		time.Sleep(time.Second)
-
-		err = p.FillDisplay(0xFF)
-		if err != nil {
-			fmt.Println("ConfigureDisplay:", err)
-		}
-
-		time.Sleep(time.Second)
-	}
 }
 
 func testHello(p *pkg.LED8KEY) {
@@ -130,9 +105,9 @@ func testLEDs(p *pkg.LED8KEY) {
 	time.Sleep(time.Second)
 
 	for {
-		p.SetLEDs([]bool{true, false, true, false, true, false, true, false})
+		p.SetLEDs([8]bool{true, false, true, false, true, false, true, false})
 		time.Sleep(time.Second)
-		p.SetLEDs([]bool{false, true, false, true, false, true, false, true})
+		p.SetLEDs([8]bool{false, true, false, true, false, true, false, true})
 		time.Sleep(time.Second)
 	}
 
@@ -140,11 +115,11 @@ func testLEDs(p *pkg.LED8KEY) {
 
 func testLEDandButtons(p *pkg.LED8KEY) {
 
-	buttons := make([]bool, 8)
+	buttons := [8]bool{}
 
 	for {
 
-		err := p.ReadButtons(buttons)
+		err := p.ReadButtons(&buttons)
 		if err != nil {
 			fmt.Println("ReadButtons:", err)
 		}
@@ -168,8 +143,8 @@ func testWriteDigits(p *pkg.LED8KEY) {
 	}
 	time.Sleep(time.Second)
 
-	data := []byte{0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55}
-	p.WriteDigits(0, data)
+	data := [8]byte{0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55}
+	p.WriteDigits(data)
 }
 
 func testWriteString(p *pkg.LED8KEY) {
@@ -180,11 +155,11 @@ func testWriteString(p *pkg.LED8KEY) {
 	}
 	time.Sleep(time.Second)
 
-	p.SetLEDs([]bool{true, true, false, false, true, false, true, false})
+	p.SetLEDs([8]bool{true, true, false, false, true, false, true, false})
 
 	data := "3.1415926"
 
-	err = p.WriteString(0, data)
+	err = p.WriteString(data)
 	if err != nil {
 		fmt.Println("WriteString:", err)
 	}
@@ -193,7 +168,7 @@ func testWriteString(p *pkg.LED8KEY) {
 func main() {
 
 	// Open the rpio once for all using packages (right now just go-led8key)
-	fmt.Println("opening gpio")
+	//fmt.Println("opening gpio")
 	err := rpio.Open()
 	if err != nil {
 		panic(fmt.Sprint("unable to open gpio", err.Error()))
@@ -211,12 +186,11 @@ func main() {
 	time.Sleep(time.Second)
 
 	//testLEDs(p)
-	//testFill(p)
 	//testFlash(p)
 	//testHello(p)
 	//testButtons(p)
-	//testLEDandButtons(p)
 	//testWriteDigits(p)
 	testWriteString(p)
+	testLEDandButtons(p)
 
 }
