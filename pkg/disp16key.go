@@ -82,9 +82,14 @@ func NewDISP16KEY(pinSTROBE int, pinCLK int, pinDIO int) *DISP16KEY {
 // digits = array of raw bit patterns for each display
 func (x *DISP16KEY) WriteDigits(digits [8]byte) error {
 
-	// TODO: this maps the digits to the display bytes
-
+	// TODO: Michael Redman ... your magic
 	fmt.Println(">:>", digits)
+
+	for i := 0; i < len(digits); i++ {
+		x.digitBuffer[0] = digits[i]
+		// Skipping over the LED bytes
+		x.WriteData(i*2, x.digitBuffer[0:1])
+	}
 	return nil
 }
 
