@@ -82,7 +82,8 @@ func NewDISP16KEY(pinSTROBE int, pinCLK int, pinDIO int) *DISP16KEY {
 // digits = array of raw bit patterns for each display
 func (x *DISP16KEY) WriteDigits(digits [8]byte) error {
 
-	// TODO: Michael Redman ... your magic
+	// For the 16-key, we have to convert the digits into a different format than used by the 8-key (and thus our other processing methods as well)
+	digits = convertEightKeyDigits(digits)
 	fmt.Println(">:>", digits)
 
 	for i := 0; i < len(digits); i++ {
@@ -133,4 +134,27 @@ func (x *DISP16KEY) ReadButtons(buttons *[16]bool) error {
 	buttons[15] = data[3]&0x04 > 0
 
 	return nil
+}
+
+// Converts display bytes formatted for the 8-key to the format that is used by the 16-key
+// See the top of this file for details on the 16-key data format
+func convertEightKeyDigits(digits [8]byte) [8]byte {
+	var outputDigits [8]byte
+
+	for i, digit := range digits {
+
+		byteIndex := 0
+
+		// For each bit in 'digit'
+		for bitMask := byte(1); bitMask > 0; bitMask = bitMask << 1 {
+			// If we have a high bit at the bit mask position
+			if bitMask&digit == bitMask {
+				outputDigits[byteIndex] |= (128 >> i)
+			}
+
+			byteIndex++
+		}
+	}
+
+	return outputDigits
 }
