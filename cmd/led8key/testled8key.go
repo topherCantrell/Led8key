@@ -176,7 +176,11 @@ func main() {
 
 	defer rpio.Close()
 
-	p := pkg.NewLED8KEY(17, 27, 22)
+	strobe := pkg.RPiGPIOPin{RpiPin: rpio.Pin(17)}
+	clk := pkg.RPiGPIOPin{RpiPin: rpio.Pin(27)}
+	dio := pkg.RPiGPIOPin{RpiPin: rpio.Pin(22)}
+
+	p := pkg.NewLED8KEY(strobe, clk, dio)
 
 	err = p.ConfigureDisplay(true, 7)
 	if err != nil {

@@ -8,8 +8,6 @@ package pkg
 import (
 	"fmt"
 	"time"
-
-	"github.com/stianeikeland/go-rpio"
 )
 
 /*
@@ -70,36 +68,34 @@ import (
 
 */
 
+type GPIOPin interface {
+	// We abstract whatever GPIO library you are using e.g. rpio or tinygo
+	Write(bool)
+	Read() bool
+	Input()
+	Output()
+}
+
 type TM1638 struct {
-	STROBE rpio.Pin
-	CLK    rpio.Pin
-	DIO    rpio.Pin
+	STROBE GPIOPin
+	CLK    GPIOPin
+	DIO    GPIOPin
 }
 
-func (x *TM1638) Initialize(pinSTROBE int, pinCLK int, pinDIO int) {
-	// Three pins to talk to the board. The DIO pin is for input/output.
-	// We'll leave the pin in input mode until we need it (avoids a short
-	// in case the board makes drives it unexpectedly).
-
-	x.STROBE = rpio.Pin(pinSTROBE)
-	x.CLK = rpio.Pin(pinCLK)
-	x.DIO = rpio.Pin(pinDIO)
-
-	x.STROBE.Write(1) // Active low -- start it high
-	x.CLK.Write(1)    // Active low -- start it high
-	x.DIO.Write(0)    // We'll simulate open-drain
-
-	x.STROBE.Output() // Driven
-	x.CLK.Output()    // Driven
-	x.DIO.Input()     // We'll simulate open-drain
-}
-
-// Create a new LED8Key driver with the given pin numbers. These numbers
-// are the RPi's BCM pin numbers -- not the board pin numbers on the IO header.
-// See the "What do these numbers mean?" section here: https://pinout.xyz/
-func NewTM1638(pinSTROBE int, pinCLK int, pinDIO int) *TM1638 {
+// Create a new LED8Key driver with the given GPIO pins.
+func NewTM1638(pinSTROBE GPIOPin, pinCLK GPIOPin, pinDIO GPIOPin) *TM1638 {
 	ret := &TM1638{}
-	ret.Initialize(pinSTROBE, pinCLK, pinDIO)
+	ret.STROBE = pinSTROBE
+	ret.CLK = pinCLK
+	ret.DIO = pinDIO
+
+	ret.STROBE.Write(true) // Active low -- start it high
+	ret.CLK.Write(true)    // Active low -- start it high
+	ret.DIO.Write(false)   // We'll simulate open-drain
+
+	ret.STROBE.Output() // Driven
+	ret.CLK.Output()    // Driven
+	ret.DIO.Input()     // We'll simulate open-drain
 	return ret
 }
 
@@ -117,11 +113,11 @@ func (x *TM1638) sendByte(value byte) {
 		} else {
 			x.DIO.Output() // Drive the line to "0"
 		}
-		x.CLK.Write(0) // Data is read on high to low transition
+		x.CLK.Write(false) // Data is read on high to low transition
 		time.Sleep(time.Microsecond)
 		value = value >> 1 // Next bit
 		time.Sleep(time.Microsecond)
-		x.CLK.Write(1) // Get ready for next cycle
+		x.CLK.Write(true) // Get ready for next cycle
 		time.Sleep(time.Microsecond)
 	}
 	x.DIO.Input()
@@ -134,13 +130,13 @@ func (x *TM1638) readByte() byte {
 	var ret byte = 0 // Accumulate value here
 	x.DIO.Input()    // We are reading
 	for i := 0; i < 8; i++ {
-		x.CLK.Write(0) // Tell the chip to write its data
-		ret = ret << 1 // Move our bits over for the new one
+		x.CLK.Write(false) // Tell the chip to write its data
+		ret = ret << 1     // Move our bits over for the new one
 		time.Sleep(time.Millisecond)
-		if x.DIO.Read() == rpio.High {
+		if x.DIO.Read() == true {
 			ret |= 1 // Add in a 1 if the data is 1
 		}
-		x.CLK.Write(1) // Ready for next cycle
+		x.CLK.Write(true) // Ready for next cycle
 		time.Sleep(time.Microsecond)
 	}
 	return ret
@@ -175,10 +171,10 @@ func (x *TM1638) ConfigureDisplay(enabled bool, pulseWidth int) error {
 	}
 	cmd |= byte(pulseWidth)
 
-	x.STROBE.Write(0)
+	x.STROBE.Write(false)
 	time.Sleep(time.Microsecond)
 	x.sendByte(cmd)
-	x.STROBE.Write(1)
+	x.STROBE.Write(true)
 	time.Sleep(time.Microsecond)
 
 	return nil
@@ -194,7 +190,7 @@ func (x *TM1638) ReadScanningData(data []byte) error {
 	if (len(data) < 1) || (len(data) > 4) {
 		return fmt.Errorf("Can only read 1 to 4 bytes")
 	}
-	x.STROBE.Write(0)
+	x.STROBE.Write(false)
 	time.Sleep(time.Microsecond)
 	x.sendByte(0b01_00_0_010) // Read command
 	time.Sleep(time.Microsecond)
@@ -203,7 +199,7 @@ func (x *TM1638) ReadScanningData(data []byte) error {
 		data[i] = v
 		time.Sleep(time.Microsecond)
 	}
-	x.STROBE.Write(1)
+	x.STROBE.Write(true)
 	time.Sleep(time.Microsecond)
 	return nil
 }
@@ -215,7 +211,7 @@ func (x *TM1638) InitWriteData(autoIncrement bool) error {
 	// 2. Send the command
 	// 3. Release the strobe
 
-	x.STROBE.Write(0)
+	x.STROBE.Write(false)
 	time.Sleep(time.Microsecond)
 	//                     I
 	var cmd byte = 0b01_00_0_000
@@ -224,7 +220,7 @@ func (x *TM1638) InitWriteData(autoIncrement bool) error {
 	}
 	x.sendByte(cmd)
 	time.Sleep(time.Microsecond)
-	x.STROBE.Write(1)
+	x.STROBE.Write(true)
 	time.Sleep(time.Microsecond)
 
 	return nil
@@ -245,7 +241,7 @@ func (x *TM1638) WriteData(address int, data []byte) error {
 	if len(data) < 1 || len(data) > 16 {
 		return fmt.Errorf("Data must be 1 to 16 bytes")
 	}
-	x.STROBE.Write(0)
+	x.STROBE.Write(false)
 	time.Sleep(time.Microsecond)
 	address |= 0b11_00_0000
 	x.sendByte(byte(address))
@@ -253,7 +249,7 @@ func (x *TM1638) WriteData(address int, data []byte) error {
 	for _, v := range data {
 		x.sendByte(v)
 	}
-	x.STROBE.Write(1)
+	x.STROBE.Write(true)
 	time.Sleep(time.Microsecond)
 	return nil
 }

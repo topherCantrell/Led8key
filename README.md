@@ -26,3 +26,7 @@ go mod tidy
 
 go run cmd/blinkTest.go
 ```
+
+# 3D printed case for 16key
+
+70.0mm square

@@ -19,7 +19,11 @@ func main() {
 
 	defer rpio.Close()
 
-	p := pkg.NewDISP16KEY(17, 27, 22)
+	strobe := pkg.RPiGPIOPin{RpiPin: rpio.Pin(17)}
+	clk := pkg.RPiGPIOPin{RpiPin: rpio.Pin(27)}
+	dio := pkg.RPiGPIOPin{RpiPin: rpio.Pin(22)}
+
+	p := pkg.NewDISP16KEY(strobe, clk, dio)
 
 	err = p.ConfigureDisplay(true, 7)
 	if err != nil {

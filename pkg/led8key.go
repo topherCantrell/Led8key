@@ -50,17 +50,13 @@ type LED8KEY struct {
 	digitBuffer [8]byte
 }
 
-func (x *LED8KEY) Initialize(pinSTROBE int, pinCLK int, pinDIO int) {
-	x.TM1638.Initialize(pinSTROBE, pinCLK, pinDIO)
-	x.ResetFont()
-}
-
 // Create a new LED8Key driver with the given pin numbers. These numbers
 // are the RPi's BCM pin numbers -- not the board pin numbers on the IO header.
 // See the "What do these numbers mean?" section here: https://pinout.xyz/
-func NewLED8KEY(pinSTROBE int, pinCLK int, pinDIO int) *LED8KEY {
+func NewLED8KEY(pinSTROBE GPIOPin, pinCLK GPIOPin, pinDIO GPIOPin) *LED8KEY {
 	ret := &LED8KEY{}
-	ret.Initialize(pinSTROBE, pinCLK, pinDIO)
+	ret.TM1638 = *NewTM1638(pinSTROBE, pinCLK, pinDIO)
+	ret.ResetFont()
 	return ret
 }
 
