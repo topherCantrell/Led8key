@@ -123,26 +123,3 @@ class Disp16Key(TM1638):
         return self._digit_buffer
         
     
-def test():
-    import board
-    import digitalio
-    import time
-    from tm1638 import TM1638
-    strobe_pin = digitalio.DigitalInOut(board.GP28)
-    dio_pin = digitalio.DigitalInOut(board.GP27)
-    clock_pin = digitalio.DigitalInOut(board.GP26)
-
-    disp = Disp16Key(strobe_pin, clock_pin, dio_pin)
-    disp.configure_display(enabled=True, pulse_width=7)
-
-    disp.init_write_data()    
-    disp.write_string('Hi.Lo')
-    
-    bts = [False]*16
-    while True:
-        disp.read_buttons(bts)
-        print(bts)
-        time.sleep(1)
-    
-
-test()
